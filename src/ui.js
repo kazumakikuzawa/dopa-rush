@@ -33,6 +33,9 @@ export function createUi(actions) {
   let lastAchievements = 0;
   let hasRendered = false;
   let toastTimer = 0;
+  let numericInitialized = false;
+  let numericTime = performance.now();
+  const displayed = { charge: 0, dps: 0, click: 0, multiplier: 1, total: 0 };
 
   const bind = () => {
     byId('dopaButton').addEventListener('click', (event) => actions.click(event));
@@ -184,11 +187,51 @@ export function createUi(actions) {
       `${state.achievements.length} / ${ACHIEVEMENTS.length}`;
   };
 
+  const numericTargets = (state) => ({
+    charge: state.dopa,
+    dps: getDps(state),
+    click: getClickPower(state),
+    multiplier: getGlobalMultiplier(state),
+    total: state.allTimeTotal,
+  });
+
+  const paintNumbers = () => {
+    elements.dopaAmount.textContent = formatNumber(displayed.charge);
+    elements.dopaAmount.dataset.value = displayed.charge.toFixed(3);
+    elements.dpsAmount.textContent = `+${formatNumber(displayed.dps)}`;
+    elements.clickPower.textContent = `+${formatNumber(displayed.click)} CHARGE`;
+    elements.globalMultiplier.textContent = `×${displayed.multiplier.toFixed(2)}`;
+    byId('allTimeTotal').textContent = formatNumber(displayed.total);
+  };
+
+  const syncNumbers = (state) => {
+    Object.assign(displayed, numericTargets(state));
+    numericInitialized = true;
+    numericTime = performance.now();
+    paintNumbers();
+  };
+
+  const animateNumbers = (state, now = performance.now()) => {
+    if (!numericInitialized) {
+      syncNumbers(state);
+      return;
+    }
+    const elapsed = Math.min(64, Math.max(0, now - numericTime));
+    numericTime = now;
+    const alpha = 1 - Math.exp(-elapsed / 105);
+    const targets = numericTargets(state);
+    Object.keys(displayed).forEach((key) => {
+      const difference = targets[key] - displayed[key];
+      displayed[key] =
+        Math.abs(difference) < Math.max(0.0005, Math.abs(targets[key]) * 0.000001)
+          ? targets[key]
+          : displayed[key] + difference * alpha;
+    });
+    paintNumbers();
+  };
+
   const render = (state, buyMode) => {
-    elements.dopaAmount.textContent = formatNumber(state.dopa);
-    elements.dpsAmount.textContent = `+${formatNumber(getDps(state))}`;
-    elements.clickPower.textContent = `+${formatNumber(getClickPower(state))} CHARGE`;
-    elements.globalMultiplier.textContent = `×${getGlobalMultiplier(state).toFixed(2)}`;
+    if (!numericInitialized) syncNumbers(state);
     const rank = getRank(state.allTimeTotal);
     byId('rankNumber').textContent = `PHASE ${String(rank.index + 1).padStart(2, '0')}`;
     byId('rankName').textContent = rank.name;
@@ -220,7 +263,6 @@ export function createUi(actions) {
     byId('awakenButton').textContent = gain
       ? `+${gain} チップで覚醒`
       : `${formatNumber(100000 - Math.min(100000, state.runTotal))} CHARGE で解放`;
-    byId('allTimeTotal').textContent = formatNumber(state.allTimeTotal);
     byId('totalClicks').textContent = state.clicks.toLocaleString('ja-JP');
     byId('awakenCount').textContent = state.awakenCount.toLocaleString('ja-JP');
     byId('playTime').textContent = formatDuration(state.playSeconds);
@@ -278,5 +320,14 @@ export function createUi(actions) {
     byId('flowValue').dataset.flow = flow.toFixed(1);
   };
 
-  return { render, notify, floatGain, showOffline, setImportError, setFlow };
+  return {
+    render,
+    animateNumbers,
+    syncNumbers,
+    notify,
+    floatGain,
+    showOffline,
+    setImportError,
+    setFlow,
+  };
 }

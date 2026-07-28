@@ -25,12 +25,28 @@ test('IGNITE, FLOW, purchase, reduced motion and save are usable', async ({ page
   });
   expect(peakFlow).toBe('10.0');
   await expect(page.locator('#dopaAmount')).not.toHaveText('0');
+  const smoothSamples = [];
+  for (let index = 0; index < 3; index += 1) {
+    smoothSamples.push(Number(await page.locator('#dopaAmount').getAttribute('data-value')));
+    await page.waitForTimeout(100);
+  }
+  expect(smoothSamples.at(-1)).toBeGreaterThan(smoothSamples[0]);
+  expect(new Set(smoothSamples).size).toBeGreaterThan(1);
   await expect
     .poll(async () => Number(await page.locator('#fxCanvas').getAttribute('data-particle-count')))
     .toBeLessThanOrEqual(160);
 
   await page.getByRole('button', { name: /TAP RELAYを1個購入/ }).click();
   await expect(page.locator('#dpsAmount')).not.toHaveText('+0');
+  await expect(page.locator('#networkSatellites .network-satellite')).toHaveCount(1);
+  await expect(page.locator('.reactor-wrap')).toHaveAttribute('data-network-total', '1');
+  await expect(page.locator('#networkLevel')).toContainText('N1');
+  await expect
+    .poll(async () =>
+      Number(await page.locator('#networkSatellites').getAttribute('data-pulse-count')),
+    )
+    .toBeGreaterThan(0);
+
   await page.getByRole('button', { name: '設定を開く' }).click();
   await expect(page.getByRole('heading', { name: '設定' })).toBeVisible();
   await page.getByLabel('演出を減らす').check();
