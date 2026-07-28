@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090a10" />
+    <meta
+      name="description"
+      content="クリックと自動生産で脳内報酬をぶち上げるインクリメンタルゲーム DOPA//RUSH"
+    />
+    <title>DOPA//RUSH — ドパガキ育成装置</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="#game" aria-label="DOPA RUSH ホーム"><span>DOPA</span><i>//</i>RUSH</a>
+      <div class="rank-chip">
+        <span id="rankNumber">RANK 01</span><strong id="rankName">無刺激ベビー</strong>
+      </div>
+      <button class="icon-button" id="settingsButton" aria-label="設定を開く">⚙</button>
+    </header>
+
+    <main id="game">
+      <h1 class="sr-only">DOPA//RUSH ドパガキ育成装置</h1>
+      <section class="hero panel" aria-labelledby="reactorTitle">
+        <div class="eyebrow"><span class="pulse"></span>DOPAMINE REACTOR ONLINE</div>
+        <div class="amount-line">
+          <strong class="amount" id="dopaAmount">0</strong><span class="unit">DOPA</span>
+        </div>
+        <p class="per-second">
+          <b id="dpsAmount">+0</b> / 秒 <span id="globalMultiplier">×1.00</span>
+        </p>
+        <div class="reactor-wrap">
+          <div class="orbit orbit-a" aria-hidden="true"></div>
+          <div class="orbit orbit-b" aria-hidden="true"></div>
+          <button class="reactor" id="dopaButton" aria-describedby="clickHint">
+            <span class="reactor-shine" aria-hidden="true"></span>
+            <small>HIT TO</small><strong id="reactorTitle">ドパる</strong>
+            <em id="clickPower">+1 DOPA</em>
+          </button>
+        </div>
+        <p class="hint" id="clickHint">クリック / Space</p>
+        <div class="next-rank" id="rankProgress">
+          <div><span>NEXT RANK</span><strong id="nextRankName">夜ふかし見習い</strong></div>
+          <b id="rankProgressText">0 / 100</b>
+          <div class="progress" aria-hidden="true"><i id="rankProgressBar"></i></div>
+        </div>
+      </section>
+
+      <section class="shop panel" aria-labelledby="shopTitle">
+        <div class="section-heading">
+          <div>
+            <span>PRODUCTION</span>
+            <h2 id="shopTitle">ドパ装置</h2>
+          </div>
+          <div class="buy-tabs" aria-label="購入数">
+            <button class="active" data-buy-mode="1" aria-pressed="true">×1</button>
+            <button data-buy-mode="10" aria-pressed="false">×10</button>
+            <button data-buy-mode="max" aria-pressed="false">MAX</button>
+          </div>
+        </div>
+        <div class="shop-list" id="facilityList"></div>
+      </section>
+
+      <section class="boost panel" aria-labelledby="boostTitle">
+        <div class="section-heading">
+          <div>
+            <span>UPGRADES</span>
+            <h2 id="boostTitle">脳内ブースト</h2>
+          </div>
+          <b class="counter" id="upgradeCounter">0 / 8</b>
+        </div>
+        <div id="upgradeList" class="upgrade-list"></div>
+      </section>
+
+      <section class="prestige panel" aria-labelledby="awakenTitle">
+        <div>
+          <span class="label">AWAKENING</span>
+          <h2 id="awakenTitle">その先へ、覚醒する。</h2>
+          <p>通常進行を手放して、全生産を恒久的に加速。</p>
+        </div>
+        <div class="prestige-score">
+          <span>覚醒チップ</span
+          ><strong><span id="awakenOwned">0</span> <small id="awakenGain">→ +0</small></strong>
+        </div>
+        <button id="awakenButton" disabled>100K DOPA で解放</button>
+      </section>
+
+      <section class="achievements panel" aria-labelledby="achievementTitle">
+        <div class="section-heading">
+          <div>
+            <span>COLLECTION</span>
+            <h2 id="achievementTitle">ドパ実績</h2>
+          </div>
+          <b class="counter" id="achievementCounter">0 / 12</b>
+        </div>
+        <div class="badges" id="achievementList"></div>
+      </section>
+
+      <section class="stats panel" aria-labelledby="statsTitle">
+        <div class="section-heading">
+          <div>
+            <span>TELEMETRY</span>
+            <h2 id="statsTitle">観測記録</h2>
+          </div>
+        </div>
+        <dl>
+          <div>
+            <dt>累計DOPA</dt>
+            <dd id="allTimeTotal">0</dd>
+          </div>
+          <div>
+            <dt>総クリック</dt>
+            <dd id="totalClicks">0</dd>
+          </div>
+          <div>
+            <dt>覚醒回数</dt>
+            <dd id="awakenCount">0</dd>
+          </div>
+          <div>
+            <dt>プレイ時間</dt>
+            <dd id="playTime">0秒</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div id="floatLayer" aria-hidden="true"></div>
+
+    <dialog id="settingsDialog">
+      <form method="dialog">
+        <div class="section-heading">
+          <div>
+            <span>SYSTEM</span>
+            <h2>設定</h2>
+          </div>
+          <button class="icon-button" value="cancel" aria-label="設定を閉じる">×</button>
+        </div>
+        <label class="setting-row"
+          ><span>演出を減らす</span><input id="reducedMotion" type="checkbox"
+        /></label>
+        <label class="setting-row"
+          ><span>効果音</span><input id="soundEnabled" type="checkbox"
+        /></label>
+        <button class="wide" id="exportButton" type="button">セーブをコピー</button>
+        <button class="wide" id="showImportButton" type="button">セーブをインポート</button>
+        <div class="import-box" id="importBox" hidden>
+          <label for="importText">セーブ文字列</label>
+          <textarea id="importText" rows="5" aria-describedby="importError"></textarea>
+          <p class="field-error" id="importError" role="alert"></p>
+          <button class="wide primary" id="importButton" type="button">読み込む</button>
+        </div>
+        <button class="wide danger" id="resetButton" type="button">全データを初期化</button>
+        <p class="save-status" id="saveStatus">自動保存: 有効</p>
+      </form>
+    </dialog>
+
+    <dialog id="offlineDialog">
+      <form method="dialog" class="offline-content">
+        <span class="offline-icon">🌙</span>
+        <div>
+          <span class="label">WELCOME BACK</span>
+          <h2>おかえり、ドパガキ。</h2>
+        </div>
+        <p><b id="offlineDuration">0分</b>の離席中に</p>
+        <strong id="offlineAmount">+0 DOPA</strong>
+        <button class="wide primary" value="default">受け取る</button>
+      </form>
+    </dialog>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
