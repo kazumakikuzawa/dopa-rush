@@ -1,4 +1,4 @@
-// IMP-001 / REQ-BIZ-001..008: deterministic progression and balance rules.
+// IMP-001 / REQ-BIZ-001: deterministic progression and save-compatible balance rules.
 export const SAVE_VERSION = 1;
 export const COST_GROWTH = 1.15;
 export const OFFLINE_CAP_SECONDS = 8 * 60 * 60;
@@ -7,72 +7,72 @@ export const OFFLINE_EFFICIENCY = 0.5;
 export const FACILITIES = Object.freeze([
   {
     id: 'scroll',
-    icon: '📱',
-    name: '無限スクロール',
-    description: '親指が勝手に次を探す',
+    icon: '⌁',
+    name: 'TAP RELAY',
+    description: '入力パルスを収集する最初の中継点',
     cost: 15,
     dps: 1,
     unlock: 0,
   },
   {
     id: 'playlist',
-    icon: '🎧',
-    name: '爆音プレイリスト',
-    description: '脳内フェス、常時開催',
+    icon: '◉',
+    name: 'RESONANCE DECK',
+    description: '無音の共鳴波を連続生成',
     cost: 180,
     dps: 6,
     unlock: 100,
   },
   {
     id: 'shorts',
-    icon: '⚡',
-    name: 'ショート動画工場',
-    description: '15秒で次の刺激を量産',
+    icon: 'ϟ',
+    name: 'VORTEX FEED',
+    description: '次の信号を高速で引き寄せる',
     cost: 3200,
     dps: 35,
     unlock: 5000,
   },
   {
     id: 'gacha',
-    icon: '🎰',
-    name: 'ガチャ研究室',
-    description: '次こそ出る、を永久機関に',
+    icon: '◇',
+    name: 'LUCK ENGINE',
+    description: '確率の揺らぎからCHARGEを抽出',
     cost: 48000,
     dps: 220,
     unlock: 100000,
   },
   {
     id: 'energy',
-    icon: '🥤',
-    name: '深夜エナドリ港',
-    description: '眠気を未来へ先送り',
+    icon: '☾',
+    name: 'NIGHT CELL',
+    description: '深夜帯の余剰エネルギーを蓄積',
     cost: 700000,
     dps: 1400,
     unlock: 2000000,
   },
   {
     id: 'lab',
-    icon: '🧪',
-    name: '刺激最適化ラボ',
-    description: '報酬回路をフルチューニング',
+    icon: '⌬',
+    name: 'SYNAPSE LAB',
+    description: '信号経路をリアルタイム最適化',
     cost: 12000000,
     dps: 9000,
     unlock: 50000000,
   },
   {
     id: 'satellite',
-    icon: '🛰️',
-    name: '軌道ドパ衛星',
-    description: '地球全体へ刺激を照射',
+    icon: '◎',
+    name: 'ORBIT ARRAY',
+    description: '軌道上からネットワークを同期',
     cost: 200000000,
     dps: 60000,
     unlock: 1000000000,
   },
   {
     id: 'singularity',
-    icon: '🌀',
-    name: 'ドパ特異点',
-    description: '刺激が刺激を生む終着点',
+    icon: '∅',
+    name: 'ZERO POINT',
+    description: '無限密度の信号源へ接続',
     cost: 4000000000,
     dps: 400000,
     unlock: 50000000000,
@@ -80,21 +80,21 @@ export const FACILITIES = Object.freeze([
 ]);
 
 export const RANKS = Object.freeze([
-  { name: '無刺激ベビー', threshold: 0 },
-  { name: '夜ふかし見習い', threshold: 100 },
-  { name: '常時接続キッズ', threshold: 5000 },
-  { name: '刺激の錬金術師', threshold: 100000 },
-  { name: '報酬回路ハッカー', threshold: 2000000 },
-  { name: '銀河級ドパガキ', threshold: 50000000 },
-  { name: '刺激概念体', threshold: 1000000000 },
-  { name: 'DOPA OVERLORD', threshold: 50000000000 },
+  { name: 'BOOT SEQUENCE', threshold: 0 },
+  { name: 'SIGNAL SEEKER', threshold: 100 },
+  { name: 'NIGHT PROTOCOL', threshold: 5000 },
+  { name: 'NEON ARCHITECT', threshold: 100000 },
+  { name: 'GRID RUNNER', threshold: 2000000 },
+  { name: 'ORBITAL MIND', threshold: 50000000 },
+  { name: 'SINGULARITY', threshold: 1000000000 },
+  { name: 'OVERDRIVE', threshold: 50000000000 },
 ]);
 
 export const UPGRADES = Object.freeze([
   {
     id: 'double-tap',
-    icon: '🔥',
-    name: '両手スクロール',
+    icon: 'Ⅱ',
+    name: 'DUAL INPUT',
     description: 'クリック威力 ×2',
     cost: 750,
     unlock: 250,
@@ -103,8 +103,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'blue-light',
-    icon: '👁️',
-    name: 'ブルーライト浴',
+    icon: '△',
+    name: 'BLUE SHIFT',
     description: '全生産 ×1.5',
     cost: 10000,
     unlock: 5000,
@@ -113,8 +113,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'hyper-thumb',
-    icon: '👍',
-    name: '超速親指',
+    icon: '≫',
+    name: 'HYPERLINK',
     description: 'クリック威力 ×5',
     cost: 80000,
     unlock: 30000,
@@ -123,8 +123,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'autoplay',
-    icon: '♾️',
-    name: '自動再生の罠',
+    icon: '∞',
+    name: 'AUTOPILOT',
     description: '全生産 ×2',
     cost: 600000,
     unlock: 200000,
@@ -133,8 +133,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'night-mode',
-    icon: '🌃',
-    name: '永続深夜モード',
+    icon: '☽',
+    name: 'NIGHT DRIVE',
     description: '全生産 ×2.5',
     cost: 10000000,
     unlock: 3000000,
@@ -143,8 +143,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'sixth-sense',
-    icon: '🧠',
-    name: '第六の親指',
+    icon: '✦',
+    name: 'GHOST HAND',
     description: 'クリック威力 ×10',
     cost: 120000000,
     unlock: 30000000,
@@ -153,8 +153,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'algorithm',
-    icon: '🤖',
-    name: 'おすすめ神託',
+    icon: '⌘',
+    name: 'ORACLE LAYER',
     description: '全生産 ×4',
     cost: 2000000000,
     unlock: 500000000,
@@ -163,8 +163,8 @@ export const UPGRADES = Object.freeze([
   },
   {
     id: 'overclock',
-    icon: '💥',
-    name: '報酬回路オーバークロック',
+    icon: '×',
+    name: 'LIMIT BREAK',
     description: '全て ×10',
     cost: 80000000000,
     unlock: 20000000000,
@@ -177,8 +177,8 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'first-hit',
     icon: '☝️',
-    name: 'はじめの一撃',
-    description: '初めてドパる',
+    name: 'FIRST SIGNAL',
+    description: '初めてIGNITEする',
     test: (s) => s.clicks >= 1,
   },
   {
@@ -191,15 +191,15 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'click-100',
     icon: '💯',
-    name: '腱鞘炎予備軍',
-    description: '100回ドパる',
+    name: 'RAPID FIRE',
+    description: '100回IGNITEする',
     test: (s) => s.clicks >= 100,
   },
   {
     id: 'one-k',
     icon: '✨',
     name: '最初の千',
-    description: '累計1K DOPA',
+    description: '累計1K CHARGE',
     test: (s) => s.allTimeTotal >= 1000,
   },
   {
@@ -212,8 +212,8 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'one-m',
     icon: '💎',
-    name: 'ミリオンドーパ',
-    description: '累計1M DOPA',
+    name: 'MEGA CHARGE',
+    description: '累計1M CHARGE',
     test: (s) => s.allTimeTotal >= 1000000,
   },
   {
@@ -226,7 +226,7 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'hundred-buildings',
     icon: '🏙️',
-    name: '刺激都市',
+    name: 'SIGNAL CITY',
     description: '施設を合計100個所有',
     test: (s) => totalFacilities(s) >= 100,
   },
@@ -240,8 +240,8 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'one-b',
     icon: '🌍',
-    name: 'ビリオンキッズ',
-    description: '累計1B DOPA',
+    name: 'WORLD CIRCUIT',
+    description: '累計1B CHARGE',
     test: (s) => s.allTimeTotal >= 1000000000,
   },
   {
@@ -254,8 +254,8 @@ export const ACHIEVEMENTS = Object.freeze([
   {
     id: 'overlord',
     icon: '👑',
-    name: 'ドパガキの王',
-    description: '最終ランクへ到達',
+    name: 'CORE ASCENDANT',
+    description: '最終PHASEへ到達',
     test: (s) => getRank(s.allTimeTotal).index === RANKS.length - 1,
   },
 ]);

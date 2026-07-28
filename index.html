@@ -3,46 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#090a10" />
+    <meta name="theme-color" content="#06070b" />
     <meta
       name="description"
-      content="クリックと自動生産で脳内報酬をぶち上げるインクリメンタルゲーム DOPA//RUSH"
+      content="CHARGEを増幅し、信号網を進化させるサイバーパンク・インクリメンタルゲーム RUSH//CORE"
     />
-    <title>DOPA//RUSH — ドパガキ育成装置</title>
+    <title>RUSH//CORE — Signal Incremental</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="ambient" aria-hidden="true"></div>
+    <canvas id="fxCanvas" aria-hidden="true"></canvas>
+    <div class="ambient" aria-hidden="true">
+      <i class="aurora aurora-a"></i>
+      <i class="aurora aurora-b"></i>
+      <i class="aurora aurora-c"></i>
+    </div>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div id="fxLayer" aria-hidden="true"></div>
+
     <header class="topbar">
-      <a class="brand" href="#game" aria-label="DOPA RUSH ホーム"><span>DOPA</span><i>//</i>RUSH</a>
+      <a class="brand" href="#game" aria-label="RUSH CORE ホーム">
+        <span>RUSH</span><i>//</i>CORE
+      </a>
+      <div class="system-status" aria-hidden="true"><i></i> GRID ONLINE</div>
       <div class="rank-chip">
-        <span id="rankNumber">RANK 01</span><strong id="rankName">無刺激ベビー</strong>
+        <span id="rankNumber">PHASE 01</span><strong id="rankName">BOOT SEQUENCE</strong>
       </div>
-      <button class="icon-button" id="settingsButton" aria-label="設定を開く">⚙</button>
+      <button class="icon-button" id="settingsButton" aria-label="設定を開く">⌘</button>
     </header>
 
     <main id="game">
-      <h1 class="sr-only">DOPA//RUSH ドパガキ育成装置</h1>
+      <h1 class="sr-only">RUSH//CORE Signal Incremental</h1>
       <section class="hero panel" aria-labelledby="reactorTitle">
-        <div class="eyebrow"><span class="pulse"></span>DOPAMINE REACTOR ONLINE</div>
+        <div class="hero-index" aria-hidden="true">01 / CORE</div>
+        <div class="eyebrow"><span class="pulse"></span>SIGNAL REACTOR ONLINE</div>
         <div class="amount-line">
-          <strong class="amount" id="dopaAmount">0</strong><span class="unit">DOPA</span>
+          <strong class="amount" id="dopaAmount">0</strong><span class="unit">CHARGE</span>
         </div>
         <p class="per-second">
-          <b id="dpsAmount">+0</b> / 秒 <span id="globalMultiplier">×1.00</span>
+          <b id="dpsAmount">+0</b> / SEC <span id="globalMultiplier">×1.00</span>
         </p>
+
         <div class="reactor-wrap">
           <div class="orbit orbit-a" aria-hidden="true"></div>
           <div class="orbit orbit-b" aria-hidden="true"></div>
+          <div class="orbit orbit-c" aria-hidden="true"></div>
+          <div class="core-halo" aria-hidden="true"></div>
           <button class="reactor" id="dopaButton" aria-describedby="clickHint">
+            <span class="reactor-surface" aria-hidden="true"></span>
             <span class="reactor-shine" aria-hidden="true"></span>
-            <small>HIT TO</small><strong id="reactorTitle">ドパる</strong>
-            <em id="clickPower">+1 DOPA</em>
+            <small>PRESS TO</small><strong id="reactorTitle">IGNITE</strong>
+            <em id="clickPower">+1 CHARGE</em>
           </button>
         </div>
-        <p class="hint" id="clickHint">クリック / Space</p>
+
+        <div class="flow-console" aria-label="連続入力の視覚強度">
+          <div>
+            <span>FLOW</span>
+            <strong id="flowValue">×1.0</strong>
+          </div>
+          <div class="flow-track" aria-hidden="true"><i id="flowBar"></i></div>
+          <small id="clickHint">CLICK / SPACE · RAPID INPUT BUILDS FLOW</small>
+        </div>
+
         <div class="next-rank" id="rankProgress">
-          <div><span>NEXT RANK</span><strong id="nextRankName">夜ふかし見習い</strong></div>
+          <div><span>NEXT PHASE</span><strong id="nextRankName">SIGNAL SEEKER</strong></div>
           <b id="rankProgressText">0 / 100</b>
           <div class="progress" aria-hidden="true"><i id="rankProgressBar"></i></div>
         </div>
@@ -51,8 +76,8 @@
       <section class="shop panel" aria-labelledby="shopTitle">
         <div class="section-heading">
           <div>
-            <span>PRODUCTION</span>
-            <h2 id="shopTitle">ドパ装置</h2>
+            <span>CORE NETWORK</span>
+            <h2 id="shopTitle">Signal Nodes</h2>
           </div>
           <div class="buy-tabs" aria-label="購入数">
             <button class="active" data-buy-mode="1" aria-pressed="true">×1</button>
@@ -66,8 +91,8 @@
       <section class="boost panel" aria-labelledby="boostTitle">
         <div class="section-heading">
           <div>
-            <span>UPGRADES</span>
-            <h2 id="boostTitle">脳内ブースト</h2>
+            <span>SYSTEM MODS</span>
+            <h2 id="boostTitle">Overclock Stack</h2>
           </div>
           <b class="counter" id="upgradeCounter">0 / 8</b>
         </div>
@@ -76,22 +101,22 @@
 
       <section class="prestige panel" aria-labelledby="awakenTitle">
         <div>
-          <span class="label">AWAKENING</span>
-          <h2 id="awakenTitle">その先へ、覚醒する。</h2>
-          <p>通常進行を手放して、全生産を恒久的に加速。</p>
+          <span class="label">ASCENSION PROTOCOL</span>
+          <h2 id="awakenTitle">Break the current timeline.</h2>
+          <p>現在のネットワークを圧縮し、全生産を恒久加速する。</p>
         </div>
         <div class="prestige-score">
-          <span>覚醒チップ</span
-          ><strong><span id="awakenOwned">0</span> <small id="awakenGain">→ +0</small></strong>
+          <span>PRISM SHARDS</span>
+          <strong><span id="awakenOwned">0</span> <small id="awakenGain">→ +0</small></strong>
         </div>
-        <button id="awakenButton" disabled>100K DOPA で解放</button>
+        <button id="awakenButton" disabled>100K CHARGE で解放</button>
       </section>
 
       <section class="achievements panel" aria-labelledby="achievementTitle">
         <div class="section-heading">
           <div>
-            <span>COLLECTION</span>
-            <h2 id="achievementTitle">ドパ実績</h2>
+            <span>ARCHIVE</span>
+            <h2 id="achievementTitle">Signal Records</h2>
           </div>
           <b class="counter" id="achievementCounter">0 / 12</b>
         </div>
@@ -102,24 +127,24 @@
         <div class="section-heading">
           <div>
             <span>TELEMETRY</span>
-            <h2 id="statsTitle">観測記録</h2>
+            <h2 id="statsTitle">Core Data</h2>
           </div>
         </div>
         <dl>
           <div>
-            <dt>累計DOPA</dt>
+            <dt>累計CHARGE</dt>
             <dd id="allTimeTotal">0</dd>
           </div>
           <div>
-            <dt>総クリック</dt>
+            <dt>総IGNITE</dt>
             <dd id="totalClicks">0</dd>
           </div>
           <div>
-            <dt>覚醒回数</dt>
+            <dt>ASCENSION</dt>
             <dd id="awakenCount">0</dd>
           </div>
           <div>
-            <dt>プレイ時間</dt>
+            <dt>接続時間</dt>
             <dd id="playTime">0秒</dd>
           </div>
         </dl>
@@ -128,6 +153,13 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div id="floatLayer" aria-hidden="true"></div>
+    <aside id="phaseReveal" class="phase-reveal" aria-live="polite" hidden>
+      <div class="phase-scan" aria-hidden="true"></div>
+      <span>NETWORK EVOLUTION</span>
+      <strong id="phaseRevealNumber">PHASE 02</strong>
+      <h2 id="phaseRevealName">SIGNAL SEEKER</h2>
+      <i aria-hidden="true"></i>
+    </aside>
 
     <dialog id="settingsDialog">
       <form method="dialog">
@@ -141,9 +173,7 @@
         <label class="setting-row"
           ><span>演出を減らす</span><input id="reducedMotion" type="checkbox"
         /></label>
-        <label class="setting-row"
-          ><span>効果音</span><input id="soundEnabled" type="checkbox"
-        /></label>
+        <p class="silent-note">SILENT MODE // 音を使わず視覚だけでフィードバックします</p>
         <button class="wide" id="exportButton" type="button">セーブをコピー</button>
         <button class="wide" id="showImportButton" type="button">セーブをインポート</button>
         <div class="import-box" id="importBox" hidden>
@@ -159,14 +189,14 @@
 
     <dialog id="offlineDialog">
       <form method="dialog" class="offline-content">
-        <span class="offline-icon">🌙</span>
+        <span class="offline-icon">◌</span>
         <div>
-          <span class="label">WELCOME BACK</span>
-          <h2>おかえり、ドパガキ。</h2>
+          <span class="label">SIGNAL RECOVERED</span>
+          <h2>Welcome back, operator.</h2>
         </div>
         <p><b id="offlineDuration">0分</b>の離席中に</p>
-        <strong id="offlineAmount">+0 DOPA</strong>
-        <button class="wide primary" value="default">受け取る</button>
+        <strong id="offlineAmount">+0 CHARGE</strong>
+        <button class="wide primary" value="default">同期する</button>
       </form>
     </dialog>
 
