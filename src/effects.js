@@ -10,6 +10,9 @@ export function createEffects() {
   const fxLayer = document.getElementById('fxLayer');
   const phaseReveal = document.getElementById('phaseReveal');
   const core = document.getElementById('dopaButton');
+  const reactorWrap = document.querySelector('.reactor-wrap');
+  const networkLayer = document.getElementById('networkSatellites');
+  const networkLabel = document.getElementById('networkLevel');
   const media = window.matchMedia('(prefers-reduced-motion: reduce)');
   const particles = [];
   const domEffects = [];
@@ -24,6 +27,10 @@ export function createEffects() {
   let previousTime = performance.now();
   let phaseTimer = 0;
   let hidden = document.hidden;
+  let networkLevel = 0;
+  let networkTotal = 0;
+  let networkSignature = '';
+  let lastNetworkPulse = performance.now();
 
   const reduced = () => media.matches || document.body.classList.contains('reduce-motion');
 
@@ -165,6 +172,63 @@ export function createEffects() {
     window.setTimeout(() => document.body.classList.remove('achievement-flash'), 850);
   }
 
+  function pulseNetwork(isConnection = false) {
+    if (reduced() || networkLevel <= 0 || !core) return;
+    const rect = core.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    burst(x, y, Math.round(4 + networkLevel * (isConnection ? 18 : 9)), 0.45 + networkLevel * 0.2);
+    core.classList.remove('network-pulse');
+    void core.offsetWidth;
+    core.classList.add('network-pulse');
+    window.setTimeout(() => core.classList.remove('network-pulse'), 700);
+    if (networkLayer) {
+      const count = Number(networkLayer.dataset.pulseCount || 0) + 1;
+      networkLayer.dataset.pulseCount = String(count);
+    }
+    lastNetworkPulse = performance.now();
+  }
+
+  function setNetwork({ activeNodes = [], totalNodes = 0, dps = 0 }) {
+    const safeTotal = Math.max(0, totalNodes);
+    const nextLevel =
+      safeTotal > 0
+        ? clamp(Math.log2(safeTotal + 1) / 7 + Math.log10(Math.max(1, dps)) / 16, 0.08, 1)
+        : 0;
+    networkLevel = nextLevel;
+    document.documentElement.style.setProperty('--network', nextLevel.toFixed(3));
+    document.documentElement.style.setProperty(
+      '--network-speed',
+      `${Math.max(5, 18 - nextLevel * 11).toFixed(2)}s`,
+    );
+    reactorWrap?.classList.toggle('has-network', safeTotal > 0);
+    reactorWrap?.setAttribute('data-network-total', String(safeTotal));
+    reactorWrap?.setAttribute('data-active-nodes', String(activeNodes.length));
+    if (networkLabel) {
+      networkLabel.textContent =
+        safeTotal > 0 ? `LV.${Math.max(1, Math.ceil(nextLevel * 10))} · N${safeTotal}` : 'OFFLINE';
+    }
+
+    const signature = activeNodes.map(({ id }) => id).join('|');
+    if (networkLayer && signature !== networkSignature) {
+      const fragment = document.createDocumentFragment();
+      activeNodes.slice(0, 8).forEach((node, index, list) => {
+        const satellite = document.createElement('i');
+        satellite.className = 'network-satellite is-connecting';
+        satellite.textContent = node.icon;
+        satellite.title = `${node.name} ×${node.count}`;
+        satellite.style.setProperty('--sat-angle', `${index / list.length}turn`);
+        satellite.style.setProperty('--sat-hue', String((index * 47 + 166) % 360));
+        fragment.append(satellite);
+      });
+      networkLayer.replaceChildren(fragment);
+      networkLayer.dataset.activeNodes = String(activeNodes.length);
+      networkSignature = signature;
+    }
+    if (safeTotal > networkTotal) pulseNetwork(true);
+    networkTotal = safeTotal;
+  }
+
   function setEnergy(nextFlow, dps = 0) {
     flow = clamp(nextFlow, 1, 10);
     energy = clamp((flow - 1) / 9 + Math.log10(dps + 1) / 14, 0, 1);
@@ -232,6 +296,8 @@ export function createEffects() {
       if (!particle.ambient && particle.life <= 0) particles.splice(index, 1);
     }
     canvas.dataset.particleCount = String(particles.length);
+    const networkInterval = 2700 - networkLevel * 1500;
+    if (networkLevel > 0 && now - lastNetworkPulse >= networkInterval) pulseNetwork();
     frameId = requestAnimationFrame(animate);
   }
 
@@ -259,6 +325,7 @@ export function createEffects() {
     purchase,
     phase,
     achievement,
+    setNetwork,
     setEnergy,
     destroy() {
       window.cancelAnimationFrame(frameId);

@@ -1,5 +1,6 @@
 // IMP-004 / REQ-BIZ-002, REQ-API-001: local orchestration and visual-only FLOW.
 import {
+  FACILITIES,
   applyClick,
   applyOfflineGain,
   applyTick,
@@ -9,6 +10,7 @@ import {
   getDps,
   purchaseFacility,
   purchaseUpgrade,
+  totalFacilities,
 } from './game.js';
 import { createEffects } from './effects.js';
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './storage.js';
@@ -54,6 +56,7 @@ const ui = createUi({
     if (!result.purchased) return;
     effects.purchase(source);
     state = result.state;
+    syncNetwork();
     ui.notify(`${result.purchased} NODE CONNECTED`);
     renderAndSave();
   },
@@ -100,6 +103,8 @@ const ui = createUi({
   importSave(encoded) {
     try {
       state = importGame(encoded);
+      ui.syncNumbers(state);
+      syncNetwork();
       ui.setImportError();
       document.getElementById('settingsDialog').close();
       ui.notify('セーブデータを同期しました');
@@ -112,6 +117,8 @@ const ui = createUi({
     if (!confirm('全ての進行を消去します。この操作は取り消せません。')) return;
     clearGame();
     state = createInitialState();
+    ui.syncNumbers(state);
+    syncNetwork();
     document.getElementById('settingsDialog').close();
     ui.notify('BOOT SEQUENCE RESTARTED');
     resetFlow();
@@ -129,6 +136,7 @@ function renderAndSave() {
   renderQueued = false;
   ui.render(state, buyMode);
   effects.setEnergy(flow, getDps(state));
+  syncNetwork();
   try {
     state = saveGame(state);
     lastSave = Date.now();
@@ -137,6 +145,16 @@ function renderAndSave() {
     document.getElementById('saveStatus').textContent = '自動保存: 失敗';
     ui.notify('保存できません。ブラウザのストレージ設定を確認してください。', true);
   }
+}
+
+function syncNetwork() {
+  effects.setNetwork({
+    activeNodes: FACILITIES.filter(({ id }) => state.facilities[id] > 0).map(
+      ({ id, icon, name }) => ({ id, icon, name, count: state.facilities[id] }),
+    ),
+    totalNodes: totalFacilities(state),
+    dps: getDps(state),
+  });
 }
 
 function scheduleRenderAndSave() {
@@ -149,9 +167,11 @@ function frame(now) {
   const seconds = Math.min(1, (now - lastFrame) / 1000);
   lastFrame = now;
   state = applyTick(state, seconds);
+  ui.animateNumbers(state, now);
   if (now - lastRender >= 250) {
     ui.render(state, buyMode);
     effects.setEnergy(flow, getDps(state));
+    syncNetwork();
     lastRender = now;
   }
   if (Date.now() - lastSave >= 10000) renderAndSave();

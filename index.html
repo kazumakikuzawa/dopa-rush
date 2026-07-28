@@ -49,6 +49,7 @@
           <div class="orbit orbit-b" aria-hidden="true"></div>
           <div class="orbit orbit-c" aria-hidden="true"></div>
           <div class="core-halo" aria-hidden="true"></div>
+          <div class="network-satellites" id="networkSatellites" aria-hidden="true"></div>
           <button class="reactor" id="dopaButton" aria-describedby="clickHint">
             <span class="reactor-surface" aria-hidden="true"></span>
             <span class="reactor-shine" aria-hidden="true"></span>
@@ -63,7 +64,10 @@
             <strong id="flowValue">×1.0</strong>
           </div>
           <div class="flow-track" aria-hidden="true"><i id="flowBar"></i></div>
-          <small id="clickHint">CLICK / SPACE · RAPID INPUT BUILDS FLOW</small>
+          <div class="reactor-telemetry">
+            <small id="clickHint">CLICK / SPACE · RAPID INPUT BUILDS FLOW</small>
+            <small>NETWORK <b id="networkLevel">OFFLINE</b></small>
+          </div>
         </div>
 
         <div class="next-rank" id="rankProgress">
