@@ -1,4 +1,4 @@
-// IMP-003 / REQ-UI-001..005: accessible rendering and interaction feedback.
+// IMP-003 / REQ-UI-001..007: accessible rendering and interaction feedback.
 import {
   ACHIEVEMENTS,
   FACILITIES,
@@ -31,6 +31,7 @@ export function createUi(actions) {
   };
   let lastRank = -1;
   let lastAchievements = 0;
+  let hasRendered = false;
   let toastTimer = 0;
 
   const bind = () => {
@@ -44,9 +45,6 @@ export function createUi(actions) {
     byId('awakenButton').addEventListener('click', actions.awaken);
     byId('reducedMotion').addEventListener('change', (event) =>
       actions.setSetting('reducedMotion', event.target.checked),
-    );
-    byId('soundEnabled').addEventListener('change', (event) =>
-      actions.setSetting('sound', event.target.checked),
     );
     byId('exportButton').addEventListener('click', actions.exportSave);
     byId('showImportButton').addEventListener('click', () => {
@@ -89,10 +87,10 @@ export function createUi(actions) {
         const buy = document.createElement('span');
         buy.className = 'machine-buy';
         const unit = document.createElement('small');
-        unit.textContent = 'DOPA';
+        unit.textContent = 'CHARGE';
         buy.append(document.createElement('b'), unit, document.createElement('i'));
         card.append(icon, copy, buy);
-        card.addEventListener('click', () => actions.buyFacility(facility.id));
+        card.addEventListener('click', () => actions.buyFacility(facility.id, card));
         elements.facilityList.append(card);
       }
       card.className = `machine ${quote.affordable ? 'affordable' : ''} ${unlocked ? '' : 'locked'}`;
@@ -100,15 +98,15 @@ export function createUi(actions) {
       card.setAttribute(
         'aria-label',
         unlocked
-          ? `${facility.name}を${buyMode === 'max' ? '最大' : quote.count}個購入。価格${formatNumber(quote.cost)} DOPA。所持${owned}`
-          : `${facility.name}、累計${formatNumber(facility.unlock)} DOPAで解放`,
+          ? `${facility.name}を${buyMode === 'max' ? '最大' : quote.count}個購入。価格${formatNumber(quote.cost)} CHARGE。所持${owned}`
+          : `${facility.name}、累計${formatNumber(facility.unlock)} CHARGEで解放`,
       );
       const icon = card.querySelector('.machine-icon');
       icon.textContent = unlocked ? facility.icon : '🔒';
       const description = card.querySelector('.machine-copy small');
       description.textContent = unlocked
         ? facility.description
-        : `累計 ${formatNumber(facility.unlock)} DOPA で解放`;
+        : `累計 ${formatNumber(facility.unlock)} CHARGE で解放`;
       const production = card.querySelector('.machine-copy em');
       production.textContent = `+${formatNumber(facility.dps)} / 秒 × ${2 ** Math.floor(owned / 10)}`;
       const cost = card.querySelector('.machine-buy b');
@@ -132,7 +130,7 @@ export function createUi(actions) {
       button.disabled = state.dopa < upgrade.cost;
       button.setAttribute(
         'aria-label',
-        `${upgrade.name}、${upgrade.description}、価格${formatNumber(upgrade.cost)} DOPA`,
+        `${upgrade.name}、${upgrade.description}、価格${formatNumber(upgrade.cost)} CHARGE`,
       );
       const icon = document.createElement('span');
       icon.textContent = upgrade.icon;
@@ -144,9 +142,9 @@ export function createUi(actions) {
       description.textContent = upgrade.description;
       text.append(name, description);
       const cost = document.createElement('b');
-      cost.textContent = `${formatNumber(upgrade.cost)} DOPA`;
+      cost.textContent = `${formatNumber(upgrade.cost)} CHARGE`;
       button.append(icon, text, cost);
-      button.addEventListener('click', () => actions.buyUpgrade(upgrade.id));
+      button.addEventListener('click', () => actions.buyUpgrade(upgrade.id, button));
       fragment.append(button);
     });
     if (!candidates.length) {
@@ -155,7 +153,7 @@ export function createUi(actions) {
       empty.textContent =
         state.upgrades.length === UPGRADES.length
           ? 'すべての回路を強化済み。'
-          : '次のブーストは累計DOPAで出現。';
+          : '次のMODは累計CHARGEで出現。';
       fragment.append(empty);
     }
     elements.upgradeList.replaceChildren(fragment);
@@ -189,10 +187,10 @@ export function createUi(actions) {
   const render = (state, buyMode) => {
     elements.dopaAmount.textContent = formatNumber(state.dopa);
     elements.dpsAmount.textContent = `+${formatNumber(getDps(state))}`;
-    elements.clickPower.textContent = `+${formatNumber(getClickPower(state))} DOPA`;
+    elements.clickPower.textContent = `+${formatNumber(getClickPower(state))} CHARGE`;
     elements.globalMultiplier.textContent = `×${getGlobalMultiplier(state).toFixed(2)}`;
     const rank = getRank(state.allTimeTotal);
-    byId('rankNumber').textContent = `RANK ${String(rank.index + 1).padStart(2, '0')}`;
+    byId('rankNumber').textContent = `PHASE ${String(rank.index + 1).padStart(2, '0')}`;
     byId('rankName').textContent = rank.name;
     if (rank.next) {
       const progress =
@@ -205,7 +203,10 @@ export function createUi(actions) {
     } else {
       byId('rankProgress').hidden = true;
     }
-    if (lastRank >= 0 && rank.index > lastRank) notify(`RANK UP — ${rank.name}`);
+    if (hasRendered && rank.index > lastRank) {
+      notify(`PHASE SHIFT — ${rank.name}`);
+      actions.rankUp?.(rank);
+    }
     lastRank = rank.index;
 
     renderFacilities(state, buyMode);
@@ -218,20 +219,23 @@ export function createUi(actions) {
     byId('awakenButton').disabled = gain < 1;
     byId('awakenButton').textContent = gain
       ? `+${gain} チップで覚醒`
-      : `${formatNumber(100000 - Math.min(100000, state.runTotal))} DOPA で解放`;
+      : `${formatNumber(100000 - Math.min(100000, state.runTotal))} CHARGE で解放`;
     byId('allTimeTotal').textContent = formatNumber(state.allTimeTotal);
     byId('totalClicks').textContent = state.clicks.toLocaleString('ja-JP');
     byId('awakenCount').textContent = state.awakenCount.toLocaleString('ja-JP');
     byId('playTime').textContent = formatDuration(state.playSeconds);
     byId('reducedMotion').checked = state.settings.reducedMotion;
-    byId('soundEnabled').checked = state.settings.sound;
     document.body.classList.toggle('reduce-motion', state.settings.reducedMotion);
 
-    if (lastAchievements && state.achievements.length > lastAchievements) {
+    if (hasRendered && state.achievements.length > lastAchievements) {
       const achievement = ACHIEVEMENTS.find(({ id }) => id === state.achievements.at(-1));
-      if (achievement) notify(`実績解除 — ${achievement.name}`);
+      if (achievement) {
+        notify(`SIGNAL RECORD — ${achievement.name}`);
+        actions.achievement?.(achievement);
+      }
     }
     lastAchievements = state.achievements.length;
+    hasRendered = true;
   };
 
   const notify = (message, error = false) => {
@@ -241,12 +245,12 @@ export function createUi(actions) {
     toastTimer = setTimeout(() => elements.toast.classList.remove('show'), 2500);
   };
 
-  const floatGain = (amount, event) => {
+  const floatGain = (amount, event, flow = 1) => {
     const button = byId('dopaButton');
     const rect = button.getBoundingClientRect();
     const node = document.createElement('span');
-    node.className = 'float-gain';
-    node.textContent = `+${formatNumber(amount)}`;
+    node.className = `float-gain ${flow >= 6 ? 'is-hot' : ''}`;
+    node.textContent = `+${formatNumber(amount)}${flow >= 3 ? ` · FLOW ${flow.toFixed(1)}` : ''}`;
     node.style.left = `${event?.clientX ?? rect.left + rect.width / 2}px`;
     node.style.top = `${event?.clientY ?? rect.top + rect.height / 2}px`;
     elements.floatLayer.append(node);
@@ -257,7 +261,7 @@ export function createUi(actions) {
   const showOffline = (result) => {
     if (result.seconds < 60 || result.amount <= 0) return;
     byId('offlineDuration').textContent = formatDuration(result.seconds);
-    byId('offlineAmount').textContent = `+${formatNumber(result.amount)} DOPA`;
+    byId('offlineAmount').textContent = `+${formatNumber(result.amount)} CHARGE`;
     byId('offlineDialog').showModal();
   };
 
@@ -268,5 +272,11 @@ export function createUi(actions) {
   };
 
   bind();
-  return { render, notify, floatGain, showOffline, setImportError };
+  const setFlow = (flow) => {
+    byId('flowValue').textContent = `×${flow.toFixed(1)}`;
+    byId('flowBar').style.width = `${((flow - 1) / 9) * 100}%`;
+    byId('flowValue').dataset.flow = flow.toFixed(1);
+  };
+
+  return { render, notify, floatGain, showOffline, setImportError, setFlow };
 }

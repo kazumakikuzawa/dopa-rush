@@ -18,7 +18,7 @@ import {
   sanitizeState,
 } from '../src/game.js';
 
-test('click gains DOPA and records the first achievement', () => {
+test('click gains CHARGE and records the first achievement', () => {
   const state = applyClick(createInitialState(0));
   assert.equal(state.dopa, 1);
   assert.equal(state.clicks, 1);

@@ -1,12 +1,12 @@
 {
-  "name": "dopagaki-idle",
-  "version": "1.0.0",
+  "name": "rush-core",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve.js",
     "build": "node scripts/build.js",
-    "type-check": "node --check src/game.js && node --check src/storage.js && node --check src/ui.js && node --check src/main.js",
+    "type-check": "node --check src/game.js && node --check src/storage.js && node --check src/effects.js && node --check src/ui.js && node --check src/main.js",
     "lint": "eslint .",
     "format": "prettier --write \"{index.html,styles.css,src/**/*.js,tests/**/*.js,scripts/**/*.js,*.json}\"",
     "format:check": "prettier --check \"{index.html,styles.css,src/**/*.js,tests/**/*.js,scripts/**/*.js,*.json}\"",

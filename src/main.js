@@ -1,3 +1,4 @@
+// IMP-004 / REQ-BIZ-002, REQ-API-001: local orchestration and visual-only FLOW.
 import {
   applyClick,
   applyOfflineGain,
@@ -5,25 +6,39 @@ import {
   awaken,
   createInitialState,
   getClickPower,
+  getDps,
   purchaseFacility,
   purchaseUpgrade,
 } from './game.js';
+import { createEffects } from './effects.js';
 import { clearGame, exportGame, importGame, loadGame, saveGame } from './storage.js';
 import { createUi } from './ui.js';
 
 let state = loadGame() ?? createInitialState();
 let buyMode = '1';
 let lastFrame = performance.now();
+let lastRender = 0;
 let lastSave = Date.now();
-let audioContext;
+let flow = 1;
+let lastIgnite = 0;
+let flowTimer = 0;
+let renderQueued = false;
 
+const effects = createEffects();
 const ui = createUi({
   click(event) {
+    const now = performance.now();
+    flow = now - lastIgnite < 1200 ? Math.min(10, flow + 0.75) : 1;
+    lastIgnite = now;
+    window.clearTimeout(flowTimer);
+    flowTimer = window.setTimeout(resetFlow, 1200);
     const gain = getClickPower(state);
     state = applyClick(state);
-    ui.floatGain(gain, event);
-    playTone(260, 0.035);
-    renderAndSave();
+    effects.ignite(event, gain, flow);
+    effects.setEnergy(flow, getDps(state));
+    ui.setFlow(flow);
+    ui.floatGain(gain, event, flow);
+    scheduleRenderAndSave();
   },
   setBuyMode(mode) {
     buyMode = mode;
@@ -34,31 +49,39 @@ const ui = createUi({
     });
     ui.render(state, buyMode);
   },
-  buyFacility(id) {
+  buyFacility(id, source) {
     const result = purchaseFacility(state, id, buyMode);
     if (!result.purchased) return;
+    effects.purchase(source);
     state = result.state;
-    playTone(420, 0.06);
-    ui.notify(`${result.purchased}個、ドパ装置へ接続`);
+    ui.notify(`${result.purchased} NODE CONNECTED`);
     renderAndSave();
   },
-  buyUpgrade(id) {
+  buyUpgrade(id, source) {
     const previous = state;
     state = purchaseUpgrade(state, id);
     if (state === previous) return;
-    playTone(620, 0.1);
-    ui.notify('脳内ブーストを装着');
+    effects.purchase(source);
+    ui.notify('SYSTEM MOD INSTALLED');
     renderAndSave();
   },
   awaken() {
     const next = awaken(state);
-    if (next === state || !confirm('通常施設と強化をリセットして覚醒しますか？')) return;
+    if (next === state || !confirm('現在のノードとMODをリセットしてASCENDしますか？')) return;
     state = next;
-    ui.notify('覚醒完了。世界が少し遅く見える。');
+    effects.phase('TIMELINE REBORN', state.awakenCount + 1);
+    ui.notify('ASCENSION COMPLETE');
     renderAndSave();
+  },
+  rankUp(rank) {
+    effects.phase(rank.name, rank.index + 1);
+  },
+  achievement() {
+    effects.achievement(document.querySelector('.badge.earned:last-of-type'));
   },
   setSetting(name, value) {
     state = { ...state, settings: { ...state.settings, [name]: value } };
+    effects.setEnergy(flow, getDps(state));
     renderAndSave();
   },
   async exportSave() {
@@ -76,11 +99,10 @@ const ui = createUi({
   },
   importSave(encoded) {
     try {
-      const imported = importGame(encoded);
-      state = imported;
+      state = importGame(encoded);
       ui.setImportError();
       document.getElementById('settingsDialog').close();
-      ui.notify('セーブデータを読み込みました');
+      ui.notify('セーブデータを同期しました');
       renderAndSave();
     } catch (error) {
       ui.setImportError(error.message);
@@ -91,13 +113,22 @@ const ui = createUi({
     clearGame();
     state = createInitialState();
     document.getElementById('settingsDialog').close();
-    ui.notify('新しいドパ人生を開始');
+    ui.notify('BOOT SEQUENCE RESTARTED');
+    resetFlow();
     renderAndSave();
   },
 });
 
+function resetFlow() {
+  flow = 1;
+  ui.setFlow(flow);
+  effects.setEnergy(flow, getDps(state));
+}
+
 function renderAndSave() {
+  renderQueued = false;
   ui.render(state, buyMode);
+  effects.setEnergy(flow, getDps(state));
   try {
     state = saveGame(state);
     lastSave = Date.now();
@@ -108,29 +139,21 @@ function renderAndSave() {
   }
 }
 
-function playTone(frequency, duration) {
-  if (!state.settings.sound) return;
-  try {
-    audioContext ??= new AudioContext();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine';
-    gain.gain.setValueAtTime(0.035, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-    oscillator.connect(gain).connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration);
-  } catch {
-    // Audio is optional; browsers may deny it without affecting the game.
-  }
+function scheduleRenderAndSave() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(renderAndSave);
 }
 
 function frame(now) {
   const seconds = Math.min(1, (now - lastFrame) / 1000);
   lastFrame = now;
   state = applyTick(state, seconds);
-  ui.render(state, buyMode);
+  if (now - lastRender >= 250) {
+    ui.render(state, buyMode);
+    effects.setEnergy(flow, getDps(state));
+    lastRender = now;
+  }
   if (Date.now() - lastSave >= 10000) renderAndSave();
   requestAnimationFrame(frame);
 }
@@ -138,9 +161,11 @@ function frame(now) {
 const offline = applyOfflineGain(state);
 state = offline.state;
 ui.render(state, buyMode);
+ui.setFlow(flow);
 ui.showOffline(offline.result);
 renderAndSave();
 requestAnimationFrame(frame);
+
 window.addEventListener('beforeunload', () => {
   try {
     saveGame(state);
@@ -148,3 +173,4 @@ window.addEventListener('beforeunload', () => {
     // The page is closing; the in-page save error already explains recovery.
   }
 });
+window.addEventListener('pagehide', () => effects.destroy(), { once: true });
